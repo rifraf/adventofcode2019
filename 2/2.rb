@@ -1,5 +1,5 @@
 #
-# Advent of Code 2018 day 1
+# Advent of Code 2018 day 2
 #
 require 'pp'
 require 'test/unit'
