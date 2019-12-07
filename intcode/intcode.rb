@@ -46,19 +46,19 @@ def run_intcode(input, output, *program)
     when 7 # less than
       # if the first parameter is less than the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
       value = if read_param(1, program, index, param1_mode) < read_param(2, program, index, param2_mode)
-        1
-      else
-        0
-      end
+                1
+              else
+                0
+              end
       write_param(3, program, index, param3_mode, value)
       index += 4
     when 8 # equals
       # if the first parameter is equal to the second parameter, it stores 1 in the position given by the third parameter. Otherwise, it stores 0.
       value = if read_param(1, program, index, param1_mode) == read_param(2, program, index, param2_mode)
-        1
-      else
-        0
-      end
+                1
+              else
+                0
+              end
       write_param(3, program, index, param3_mode, value)
       index += 4
     else

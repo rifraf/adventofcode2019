@@ -36,18 +36,18 @@ end
 
 #===========================================================
 def max_thruster_signal(program, phases)
-  input_A = Queue.new << phases.shift << 0
-  input_B = Queue.new << phases.shift
-  input_C = Queue.new << phases.shift
-  input_D = Queue.new << phases.shift
-  input_E = Queue.new << phases.shift
+  input_a = Queue.new << phases.shift << 0
+  input_b = Queue.new << phases.shift
+  input_c = Queue.new << phases.shift
+  input_d = Queue.new << phases.shift
+  input_e = Queue.new << phases.shift
   output  = Queue.new
 
-  run_intcode(input_A, input_B, *program.dup)
-  run_intcode(input_B, input_C, *program.dup)
-  run_intcode(input_C, input_D, *program.dup)
-  run_intcode(input_D, input_E, *program.dup)
-  run_intcode(input_E, output, *program.dup)
+  run_intcode(input_a, input_b, *program.dup)
+  run_intcode(input_b, input_c, *program.dup)
+  run_intcode(input_c, input_d, *program.dup)
+  run_intcode(input_d, input_e, *program.dup)
+  run_intcode(input_e, output, *program.dup)
 
   output.pop
 end
@@ -78,29 +78,29 @@ end
 
 #===========================================================
 def revised_max_thruster_signal(program, phases)
-  input_A = Queue.new << phases.shift << 0
-  input_B = Queue.new << phases.shift
-  input_C = Queue.new << phases.shift
-  input_D = Queue.new << phases.shift
-  input_E = Queue.new << phases.shift
+  input_a = Queue.new << phases.shift << 0
+  input_b = Queue.new << phases.shift
+  input_c = Queue.new << phases.shift
+  input_d = Queue.new << phases.shift
+  input_e = Queue.new << phases.shift
 
   threads = []
   threads << Thread.new do
-    run_intcode(input_A, input_B, *program.dup)
+    run_intcode(input_a, input_b, *program.dup)
   end
   threads << Thread.new do
-    run_intcode(input_B, input_C, *program.dup)
+    run_intcode(input_b, input_c, *program.dup)
   end
   threads << Thread.new do
-    run_intcode(input_C, input_D, *program.dup)
+    run_intcode(input_c, input_d, *program.dup)
   end
   threads << Thread.new do
-    run_intcode(input_D, input_E, *program.dup)
+    run_intcode(input_d, input_e, *program.dup)
   end
   threads << Thread.new do
-    run_intcode(input_E, input_A, *program.dup)
+    run_intcode(input_e, input_a, *program.dup)
   end
 
   threads.each { |thr| thr.join }
-  input_A.pop
+  input_a.pop
 end
