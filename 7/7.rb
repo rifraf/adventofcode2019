@@ -29,36 +29,78 @@ class Examples7a < Test::Unit::TestCase
     result = [0, 1, 2, 3, 4].permutation.map do |phase|
       max_thruster_signal(program, phase)
     end.max
-    p result
+    puts "Part 1 result is #{result}"
     assert_equal 255590, result # <- correct
   end
 end
 
 #===========================================================
 def max_thruster_signal(program, phases)
-  # A amplifier
-  input = [phases.shift, 0]
-  output = []
-  run_intcode(input, output, *program.dup)
+  input_A = Queue.new << phases.shift << 0
+  input_B = Queue.new << phases.shift
+  input_C = Queue.new << phases.shift
+  input_D = Queue.new << phases.shift
+  input_E = Queue.new << phases.shift
+  output  = Queue.new
 
-  # B amplifier
-  input = [phases.shift, output[0]]
-  output = []
-  run_intcode(input, output, *program.dup)
+  run_intcode(input_A, input_B, *program.dup)
+  run_intcode(input_B, input_C, *program.dup)
+  run_intcode(input_C, input_D, *program.dup)
+  run_intcode(input_D, input_E, *program.dup)
+  run_intcode(input_E, output, *program.dup)
 
-  # C amplifier
-  input = [phases.shift, output[0]]
-  output = []
-  run_intcode(input, output, *program.dup)
+  output.pop
+end
 
-  # D amplifier
-  input = [phases.shift, output[0]]
-  output = []
-  run_intcode(input, output, *program.dup)
+#===========================================================
+# Test driver7b
+#===========================================================
+class Examples7b < Test::Unit::TestCase
+  def test_1
+    program = [3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5].freeze
+    assert_equal 139629729, revised_max_thruster_signal(program, [9,8,7,6,5])
+  end
 
-  # E amplifier
-  input = [phases.shift, output[0]]
-  output = []
-  run_intcode(input, output, *program.dup)
-  output[0]
+  def test_2
+    program = [3,52,1001,52,-5,52,3,53,1,52,56,54,1007,54,5,55,1005,55,26,1001,54,-5,54,1105,1,12,1,53,54,53,1008,54,0,55,1001,55,1,55,2,53,55,53,4,53,1001,56,-1,56,1005,56,6,99,0,0,0,0,10].freeze
+    assert_equal 18216, revised_max_thruster_signal(program, [9,7,8,5,6])
+  end
+
+  def test_part2
+    program = [3,8,1001,8,10,8,105,1,0,0,21,42,63,76,101,114,195,276,357,438,99999,3,9,101,2,9,9,102,5,9,9,1001,9,3,9,1002,9,5,9,4,9,99,3,9,101,4,9,9,102,5,9,9,1001,9,5,9,102,2,9,9,4,9,99,3,9,1001,9,3,9,1002,9,5,9,4,9,99,3,9,1002,9,2,9,101,5,9,9,102,3,9,9,101,2,9,9,1002,9,3,9,4,9,99,3,9,101,3,9,9,102,2,9,9,4,9,99,3,9,1001,9,2,9,4,9,3,9,102,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,2,9,4,9,3,9,1001,9,2,9,4,9,3,9,1001,9,1,9,4,9,99,3,9,102,2,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,102,2,9,9,4,9,99,3,9,102,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,101,2,9,9,4,9,3,9,1001,9,2,9,4,9,99,3,9,1001,9,1,9,4,9,3,9,101,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,1001,9,2,9,4,9,3,9,102,2,9,9,4,9,3,9,1001,9,2,9,4,9,99,3,9,102,2,9,9,4,9,3,9,101,1,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,101,2,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,101,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,101,2,9,9,4,9,99]
+    result = [5, 6, 7, 8, 9].permutation.map do |phase|
+      revised_max_thruster_signal(program, phase)
+    end.max
+    puts "Part 2 result is #{result}"
+    assert_equal 58285150, result # <- correct
+  end
+end
+
+#===========================================================
+def revised_max_thruster_signal(program, phases)
+  input_A = Queue.new << phases.shift << 0
+  input_B = Queue.new << phases.shift
+  input_C = Queue.new << phases.shift
+  input_D = Queue.new << phases.shift
+  input_E = Queue.new << phases.shift
+
+  threads = []
+  threads << Thread.new do
+    run_intcode(input_A, input_B, *program.dup)
+  end
+  threads << Thread.new do
+    run_intcode(input_B, input_C, *program.dup)
+  end
+  threads << Thread.new do
+    run_intcode(input_C, input_D, *program.dup)
+  end
+  threads << Thread.new do
+    run_intcode(input_D, input_E, *program.dup)
+  end
+  threads << Thread.new do
+    run_intcode(input_E, input_A, *program.dup)
+  end
+
+  threads.each { |thr| thr.join }
+  input_A.pop
 end
