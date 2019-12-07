@@ -16,6 +16,7 @@ end
 
 #===========================================================
 class Rock
+  attr_reader :name
   def initialize(name)
     @name = name
     @orbits = []
@@ -37,10 +38,15 @@ class Rock
     end
     @total_orbits[0]
   end
+
+  def route_to_centre
+    return [] unless @orbits.any?
+
+    [@orbits[0].name] + @orbits[0].route_to_centre
+  end
 end
 
-#===========================================================
-def direct_and_indirect_orbits_for(orbit_info)
+def map_rocks(orbit_info)
   rock_directory = {}
   orbit_info.each do |orbit|
     inner, orbiter = orbit.split(')')
@@ -48,8 +54,13 @@ def direct_and_indirect_orbits_for(orbit_info)
     rock_directory[orbiter] ||= Rock.new(orbiter)
     rock_directory[orbiter].orbits(rock_directory[inner])
   end
+  rock_directory
+end
 
-  # pp rock_directory
+#===========================================================
+def direct_and_indirect_orbits_for(orbit_info)
+  rock_directory = map_rocks(orbit_info)
+
   total = 0
   rock_directory.each do |_name, rock|
     total += rock.total_orbits
@@ -64,5 +75,40 @@ class Examples1a < Test::Unit::TestCase
   def test_data
     orbits = IO.readlines('input1.txt').map { |l| l.strip }
     assert_equal 387356, direct_and_indirect_orbits_for(orbits) # <- correct solution
+  end
+end
+
+#===========================================================
+# Test driver2
+#===========================================================
+class Examples2 < Test::Unit::TestCase
+  def test_data
+    orbits = ['COM)B', 'B)C', 'C)D', 'D)E', 'E)F', 'B)G', 'G)H', 'D)I', 'E)J', 'J)K', 'K)L', 'K)YOU', 'I)SAN']
+    assert_equal 4, orbital_transfers_for(orbits, 'YOU', 'SAN')
+  end
+end
+
+def route_to_centre(rock_directory, start)
+  rock_directory[start].route_to_centre
+end
+
+def orbital_transfers_for(orbit_info, a, b)
+  rock_directory = map_rocks(orbit_info)
+  a_route_from_centre = route_to_centre(rock_directory, a).reverse
+  b_route_from_centre = route_to_centre(rock_directory, b).reverse
+
+  matches = a_route_from_centre & b_route_from_centre
+
+  hops = (a_route_from_centre.length - matches.length) + (b_route_from_centre.length - matches.length)
+  hops
+end
+
+#===========================================================
+# Test driver2a
+#===========================================================
+class Examples2a < Test::Unit::TestCase
+  def test_data
+    orbits = IO.readlines('input1.txt').map { |l| l.strip }
+    assert_equal 532, orbital_transfers_for(orbits, 'YOU', 'SAN') # <- correct solution
   end
 end
