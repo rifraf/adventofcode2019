@@ -47,3 +47,16 @@ class Examples9a < Test::Unit::TestCase
     assert_equal 3765554916, output[0] # <- correct
   end
 end
+
+#===========================================================
+# Test driver9b
+#===========================================================
+class Examples9b < Test::Unit::TestCase
+  def test_b
+    program = IO.read('input1.txt').split(',').map(&:to_i)
+    input = [2]
+    output = []
+    run_intcode(input, output, *program)
+    assert_equal 76642, output[0] # <- correct
+  end
+end
