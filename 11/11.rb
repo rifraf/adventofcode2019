@@ -91,7 +91,7 @@ class Examples11a < Test::Unit::TestCase
     ship_surface = Panels.new
 
     program = IO.read('input1.txt').split(',').map(&:to_i)
-    program_input = Queue.new << 0
+    program_input = Queue.new << Panels::BLACK
     program_output = Queue.new
 
     threads = []
@@ -115,7 +115,7 @@ class Examples11a < Test::Unit::TestCase
 
     threads.each(&:join)
 
-    puts "#{ship_surface.painted_panels.length} panels were painted"
+    puts "#{ship_surface.painted_panels.length} panels were painted in part 1"
     assert_equal 2016, ship_surface.painted_panels.length # <- correct
   end
 end
@@ -180,5 +180,63 @@ class Panels
     @x += @forward[0]
     @y += @forward[1]
     # puts "Move #{direction} to [#{@x}, #{@y}]"
+  end
+end
+
+#===========================================================
+# Test driver11b
+#===========================================================
+class Examples11b < Test::Unit::TestCase
+
+  def test_part2
+    # Same but start on WHITE
+    ship_surface = Panels.new
+
+    program = IO.read('input1.txt').split(',').map(&:to_i)
+    program_input = Queue.new << Panels::WHITE
+    program_output = Queue.new
+
+    threads = []
+    threads << Thread.new do
+      run_intcode(program_input, program_output, *program)
+      program_output << Panels::QUIT
+    end
+    threads << Thread.new do
+      loop do
+        colour = program_output.pop
+        break if colour == Panels::QUIT
+
+        ship_surface.paint colour
+
+        direction = program_output.pop
+        ship_surface.move direction
+
+        program_input.push ship_surface.colour_of_current_panel
+      end
+    end
+
+    threads.each(&:join)
+
+    puts "#{ship_surface.painted_panels.length} panels were painted in part 2"
+    assert_equal 249, ship_surface.painted_panels.length # <- correct
+    display_pattern(ship_surface.white_panels)
+
+    # ----------------------
+    # RAPRCBPH
+    # ----------------------
+  end
+end
+
+def display_pattern(white_panels)
+  xs = white_panels.map { |x, y| x }
+  ys = white_panels.map { |x, y| y }
+  x_range = (xs.min..xs.max)
+  y_range = (ys.min..ys.max)
+
+  y_range.reverse_each do |y|
+    puts
+    x_range.each do |x|
+      print (white_panels.include?([x, y])) ? '*' : ' '
+    end
   end
 end
