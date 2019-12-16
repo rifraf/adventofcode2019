@@ -270,7 +270,7 @@ def calc_repeats(system)
   y_repeats = system.moons.map { |_m| [] }
   z_starts  = system.moons.map { |m| [m.position[2], m.velocity[2]] }
   z_repeats = system.moons.map { |_m| [] }
-  ready     = system.moons.map { |_m| false }
+  ready_x = ready_y = ready_z = false
 
   iteration = 0
   loop do
@@ -281,34 +281,27 @@ def calc_repeats(system)
     system.moons.each_with_index do |moon, index|
       if x_starts[index] == [moon.position[0], moon.velocity[0]]
         x_repeats[index] << iteration
-        # ready[index] = true if (y_repeats[index].any?) && (z_repeats[index].any?)
-        ready[index] = true if (y_repeats[index].include?(iteration)) && (z_repeats[index].include?(iteration))
-      end
+        ready_x = true if x_repeats.all? { |r| r.include?(iteration)}
+      end unless ready_x
 
       if y_starts[index] == [moon.position[1], moon.velocity[1]]
         y_repeats[index] << iteration
-        # ready[index] = true if (x_repeats[index].any?) && (z_repeats[index].any?)
-        ready[index] = true if (x_repeats[index].include?(iteration)) && (z_repeats[index].include?(iteration))
-      end
+        ready_y = true if y_repeats.all? { |r| r.include?(iteration)}
+      end unless ready_y
 
       if z_starts[index] == [moon.position[2], moon.velocity[2]]
         z_repeats[index] << iteration
-        # ready[index] = true if (x_repeats[index].any?) && (y_repeats[index].any?)
-        ready[index] = true if (x_repeats[index].include?(iteration)) && (y_repeats[index].include?(iteration))
-      end
+        ready_z = true if z_repeats.all? { |r| r.include?(iteration)}
+      end unless ready_z
     end
 
-    break if ready.all?
+    break if ready_x & ready_y & ready_z
   end
 
-  # To find repeat, take first element in one with fewest repeats
-  pp x_repeats.sort { |a, b| a.length <=> b.length }
-  pp y_repeats.sort { |a, b| a.length <=> b.length }
-  pp z_repeats.sort { |a, b| a.length <=> b.length }
-
-  x_repeat = x_repeats.sort { |a, b| a.length <=> b.length }[0][0]
-  y_repeat = y_repeats.sort { |a, b| a.length <=> b.length }[0][0]
-  z_repeat = z_repeats.sort { |a, b| a.length <=> b.length }[0][0]
+  # To find repeat, take last element in one with fewest repeats
+  x_repeat = x_repeats.sort { |a, b| a.length <=> b.length }[0][-1]
+  y_repeat = y_repeats.sort { |a, b| a.length <=> b.length }[0][-1]
+  z_repeat = z_repeats.sort { |a, b| a.length <=> b.length }[0][-1]
   lcm = [x_repeat, y_repeat, z_repeat].reduce(1, :lcm)
   puts "Repeats: #{[x_repeat, y_repeat, z_repeat]}"
   puts " -> #{lcm}"
@@ -339,8 +332,6 @@ class Examples12_2 < Test::Unit::TestCase
     system.add_moons(locations)
 
     puts "Part 2"
-    #            1366156979 <- low
-    #           27048220958 <- low
-    assert_equal 13524110479, calc_repeats(system)
+    assert_equal 292653556339368, calc_repeats(system) # <- correct
   end
 end
