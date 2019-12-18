@@ -5,9 +5,9 @@ require 'pp'
 require 'test/unit'
 
 #===========================================================
-# Test driver14
+# Test driver14a
 #===========================================================
-class Examples14 < Test::Unit::TestCase
+class Examples14a < Test::Unit::TestCase
   def test_example1
     reactions = [
       '10 ORE => 10 A',
@@ -139,7 +139,6 @@ class Examples14 < Test::Unit::TestCase
     cookbook.add_recipes reactions
     assert_equal 1590844, cookbook.calculate_ore_for('FUEL', 1) # <- correct
   end
-
 end
 
 #===========================================================
@@ -255,5 +254,110 @@ class Element
       end
     end
   end
+end
 
+#===========================================================
+# Test driver14b
+#===========================================================
+class Examples14b < Test::Unit::TestCase
+  TRILLION = 1_000_000_000_000
+
+  def test_example3
+    reactions = [
+      '157 ORE => 5 NZVS',
+      '165 ORE => 6 DCFZ',
+      '44 XJWVT, 5 KHKGT, 1 QDVJ, 29 NZVS, 9 GPVTF, 48 HKGWZ => 1 FUEL',
+      '12 HKGWZ, 1 GPVTF, 8 PSHF => 9 QDVJ',
+      '179 ORE => 7 PSHF',
+      '177 ORE => 5 HKGWZ',
+      '7 DCFZ, 7 PSHF => 2 XJWVT',
+      '165 ORE => 2 GPVTF',
+      '3 DCFZ, 7 NZVS, 5 HKGWZ, 10 PSHF => 8 KHKGT'
+    ]
+    cookbook = CookBook.new
+    cookbook.add_recipes reactions
+    assert_equal 13312, cookbook.calculate_ore_for('FUEL', 1)
+    assert_equal 82_892_753, how_much_ore_for(TRILLION, 'FUEL', cookbook)
+    assert_equal 999999999076, cookbook.calculate_ore_for('FUEL', 82_892_753)
+  end
+
+  def test_example4
+    reactions = [
+      '2 VPVL, 7 FWMGM, 2 CXFTF, 11 MNCFX => 1 STKFG',
+      '17 NVRVD, 3 JNWZP => 8 VPVL',
+      '53 STKFG, 6 MNCFX, 46 VJHF, 81 HVMC, 68 CXFTF, 25 GNMV => 1 FUEL',
+      '22 VJHF, 37 MNCFX => 5 FWMGM',
+      '139 ORE => 4 NVRVD',
+      '144 ORE => 7 JNWZP',
+      '5 MNCFX, 7 RFSQX, 2 FWMGM, 2 VPVL, 19 CXFTF => 3 HVMC',
+      '5 VJHF, 7 MNCFX, 9 VPVL, 37 CXFTF => 6 GNMV',
+      '145 ORE => 6 MNCFX',
+      '1 NVRVD => 8 CXFTF',
+      '1 VJHF, 6 MNCFX => 4 RFSQX',
+      '176 ORE => 6 VJHF'
+    ]
+    cookbook = CookBook.new
+    cookbook.add_recipes reactions
+    assert_equal 180697, cookbook.calculate_ore_for('FUEL', 1)
+    assert_equal 5_586_022, how_much_ore_for(TRILLION, 'FUEL', cookbook)
+  end
+
+  def test_example5
+    reactions = [
+      '171 ORE => 8 CNZTR',
+      '7 ZLQW, 3 BMBT, 9 XCVML, 26 XMNCP, 1 WPTQ, 2 MZWV, 1 RJRHP => 4 PLWSL',
+      '114 ORE => 4 BHXH',
+      '14 VRPVC => 6 BMBT',
+      '6 BHXH, 18 KTJDG, 12 WPTQ, 7 PLWSL, 31 FHTLT, 37 ZDVW => 1 FUEL',
+      '6 WPTQ, 2 BMBT, 8 ZLQW, 18 KTJDG, 1 XMNCP, 6 MZWV, 1 RJRHP => 6 FHTLT',
+      '15 XDBXC, 2 LTCX, 1 VRPVC => 6 ZLQW',
+      '13 WPTQ, 10 LTCX, 3 RJRHP, 14 XMNCP, 2 MZWV, 1 ZLQW => 1 ZDVW',
+      '5 BMBT => 4 WPTQ',
+      '189 ORE => 9 KTJDG',
+      '1 MZWV, 17 XDBXC, 3 XCVML => 2 XMNCP',
+      '12 VRPVC, 27 CNZTR => 2 XDBXC',
+      '15 KTJDG, 12 BHXH => 5 XCVML',
+      '3 BHXH, 2 VRPVC => 7 MZWV',
+      '121 ORE => 7 VRPVC',
+      '7 XCVML => 6 RJRHP',
+      '5 BHXH, 4 VRPVC => 5 LTCX'
+    ]
+    cookbook = CookBook.new
+    cookbook.add_recipes reactions
+    assert_equal 2210736, cookbook.calculate_ore_for('FUEL', 1)
+    assert_equal 460664, how_much_ore_for(TRILLION, 'FUEL', cookbook)
+  end
+
+  def test_part2
+    reactions = IO.readlines('input1.txt')
+
+    cookbook = CookBook.new
+    cookbook.add_recipes reactions
+    assert_equal 1590844, cookbook.calculate_ore_for('FUEL', 1) # <- correct
+    assert_equal 1184209, how_much_ore_for(TRILLION, 'FUEL', cookbook)
+  end
+end
+
+def how_much_ore_for(limit, element, cookbook)
+  # Successive approximation
+  one_item = cookbook.calculate_ore_for(element, 1)
+  guess = limit / one_item # Must be match or less
+  step  = guess
+
+  guess += step
+  loop do
+    ore_needed = cookbook.calculate_ore_for('FUEL', guess)
+    step = [1, step / 2].max
+    if ore_needed > limit
+      guess -= step
+    else
+      if step == 1
+        puts "FOUND near #{guess}"
+        return guess + 1 if cookbook.calculate_ore_for('FUEL', guess + 1) < limit
+
+        return guess
+      end
+      guess += step
+    end
+  end
 end
