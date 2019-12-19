@@ -105,6 +105,7 @@ class Examples15a < Test::Unit::TestCase
     eval(IO.read('oxygen')).each { |loc| map.add_oxygen loc }
     eval(IO.read('walls')).each { |loc| map.add_wall loc }
 
+    # Answer is 248 (by hand - see 'map')
     map.visualize_with_droid droid.position
   end
 end
