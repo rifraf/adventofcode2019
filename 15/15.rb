@@ -115,19 +115,44 @@ class MapOfShip
   attr_reader :oxygen_location
   attr_reader :walls
 
+  # --------------------------------------------------------
   def initialize
     @oxygen_location = []
     @walls = []
+    @colored = {}
   end
 
+  # --------------------------------------------------------
   def add_wall(loc)
     @walls << loc
   end
 
+  # --------------------------------------------------------
   def add_oxygen(loc)
     @oxygen_location << loc
   end
 
+  # --------------------------------------------------------
+  def color(locations, value)
+    locations.each do |loc|
+      @colored[loc] = value
+    end
+  end
+
+  # --------------------------------------------------------
+  def occupied?(loc)
+    @colored[loc] || @walls.include?(loc) || !@x_range.cover?(loc[0]) || !@y_range.cover?(loc[1])
+  end
+
+  # --------------------------------------------------------
+  def freeze_dimensions
+    x_coords = @walls.map { |x, _y| x }.sort.uniq
+    y_coords = @walls.map { |_x, y| y }.sort.uniq
+    @x_range = (x_coords[0]..x_coords[-1])
+    @y_range = (y_coords[0]..y_coords[-1])
+  end
+
+  # --------------------------------------------------------
   def visualize_with_droid(droid_loc)
     cells = {
       [0, 0] => 'Z',
@@ -146,14 +171,50 @@ class MapOfShip
     end
     puts
   end
+
+  # --------------------------------------------------------
+  def visualize_colorized
+    cells = {}
+    @walls.each { |pos| cells[pos] = '#' }
+    @colored.each { |loc, val| cells[loc] = '~' }
+    puts
+    freeze_dimensions
+    @y_range.each do |y|
+      @x_range.each do |x|
+        print cells[[x, y]] || '.'
+      end
+      puts
+    end
+    puts
+  end
+
+  # --------------------------------------------------------
+  def paint_adjacent_to(seekers, value)
+    new_seekers = []
+
+    seekers.each do |loc|
+      x = loc[0]
+      y = loc[1]
+      new_seekers << [x + 1, y] unless occupied?([x + 1, y])
+      new_seekers << [x - 1, y] unless occupied?([x - 1, y])
+      new_seekers << [x, y + 1] unless occupied?([x, y + 1])
+      new_seekers << [x, y - 1] unless occupied?([x, y - 1])
+    end
+    color(new_seekers, value)
+
+    new_seekers
+  end
+
 end
 
 #===========================================================
 class DummyNavigator
+  # --------------------------------------------------------
   def initialize(responses)
     @responses = responses
   end
 
+  # --------------------------------------------------------
   def response_to_move(_move)
     @responses.shift
   end
@@ -170,6 +231,7 @@ class Navigator
   MOVED = 1
   FOUND_OXYGEN = 2
 
+  # --------------------------------------------------------
   def initialize(program)
     @input = Queue.new
     @output = Queue.new
@@ -182,6 +244,7 @@ class Navigator
     end
   end
 
+  # --------------------------------------------------------
   def response_to_move(move)
     @input << move
     @output.pop
@@ -192,11 +255,13 @@ end
 class Droid
   attr_reader :position
 
+  # --------------------------------------------------------
   def initialize(navigator)
     @position = [0, 0]
     @navigator = navigator
   end
 
+  # --------------------------------------------------------
   def move(step)
     next_position = case step
                     when Navigator::NORTH
@@ -212,5 +277,46 @@ class Droid
     response = @navigator.response_to_move(step)
     @position = next_position unless response == Navigator::WALL
     [response, next_position]
+  end
+end
+
+#===========================================================
+# Test driver15b
+#===========================================================
+class Examples15b < Test::Unit::TestCase
+
+  #=========================================================
+  def test_diffusion
+
+    program = IO.read('input1.txt').split(',').map(&:to_i)
+    map = MapOfShip.new
+    # navigator = Navigator.new(program)
+    # droid = Droid.new(navigator)
+
+    # ----------------------------------------
+    # Read map back from file
+    # ----------------------------------------
+    eval(IO.read('oxygen')).each { |loc| map.add_oxygen loc }
+    eval(IO.read('walls')).each { |loc| map.add_wall loc }
+    map.freeze_dimensions
+
+    # ----------------------------------------
+    # Colorize a few steps
+    # ----------------------------------------
+    minutes = 0
+    seekers = map.oxygen_location
+    map.color seekers, minutes
+
+    while seekers.any? do
+      minutes += 1
+      seekers = map.paint_adjacent_to(seekers, minutes)
+      p seekers, minutes
+    end
+
+    puts "Diffuses in #{minutes}"
+    map.visualize_colorized
+    # seekers = map.oxygen_location
+    # p seekers
+    # 249 too low
   end
 end
