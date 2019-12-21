@@ -11,7 +11,7 @@ require_relative '../intcode/intcode'
 class Examples15a < Test::Unit::TestCase
 
   #=========================================================
-  def xtest_simple_movement
+  def test_simple_movement
     map = MapOfShip.new
     navigator = DummyNavigator.new([Navigator::WALL, Navigator::WALL, Navigator::WALL, Navigator::MOVED, Navigator::FOUND_OXYGEN, Navigator::WALL])
     droid = Droid.new(navigator)
@@ -66,7 +66,7 @@ class Examples15a < Test::Unit::TestCase
     map.add_wall location
     assert_equal [[0, 1], [0, -1], [1, 0], [-3, 0]], map.walls
 
-    map.visualize_with_droid droid.position
+    # map.visualize_with_droid droid.position
   end
 
   #=========================================================
@@ -107,7 +107,7 @@ class Examples15a < Test::Unit::TestCase
     eval(IO.read('walls')).each { |loc| map.add_wall loc }
 
     # Answer is 248 (by hand - see 'map')
-    map.visualize_with_droid droid.position
+    # map.visualize_with_droid droid.position
   end
 end
 
@@ -262,9 +262,7 @@ class Navigator
 
     threads = []
     threads << Thread.new do
-      puts 'Start intcode'
       run_intcode(@input, @output, *program)
-      puts 'Stop intcode'
     end
   end
 
@@ -308,22 +306,12 @@ end
 #===========================================================
 class Examples15b < Test::Unit::TestCase
 
-  # Try search and backtrack.
-  #  Go straight until hit wall, keeping track of route
-  #   Record l & r as a branch point
-  #    Remove l if it is a known wall
-  #    Remove r if it is a known wall
-  #    If branch point is empty, backtrack to last nonempty branch point
-  #     Finished if backtracks to 0,0
-  #    Else
-  #     Go in direction of first entry in branch point
-  #
-  # Try only going left when hitting a wall and stop when back at first hit
+  # Try tending right but going left when hitting a wall.
   # Should work if the map is enclosed (else oxygen will leak). May miss walls
   # not connected to others by > 1 grid
 
   #=========================================================
-  def xtest_simple_search
+  def test_simple_search
     map = MapOfShip.new
     navigator = FakeNavigator.new([[0,1], [-1,1], [-1,0], [-1,-1], [0,-1], [1,-1], [1,0],  [1,1] ])
     droid = Droid.new(navigator)
@@ -347,7 +335,7 @@ class Examples15b < Test::Unit::TestCase
                     when Navigator::EAST  then Navigator::NORTH
                     end
       end
-      map.visualize_with_droid droid.position
+      # map.visualize_with_droid droid.position
     end
 
   end
@@ -385,52 +373,39 @@ class Examples15b < Test::Unit::TestCase
       end
       break if (droid.position == [0, 0]) && (direction == Navigator::NORTH)
     end
-
-
-    map.visualize_with_droid droid.position
+    # map.visualize_with_droid droid.position
 
     # Save result
     IO.write('walls2', map.walls.to_s)
     IO.write('oxygen2', map.oxygen_location.to_s)
+  end
+
+  #=========================================================
+  def test_diffusion
+    map = MapOfShip.new
 
     # ----------------------------------------
     # Read map back from file
     # ----------------------------------------
-    # eval(IO.read('oxygen')).each { |loc| map.add_oxygen loc }
-    # eval(IO.read('walls')).each { |loc| map.add_wall loc }
+    eval(IO.read('oxygen2')).each { |loc| map.add_oxygen loc }
+    eval(IO.read('walls2')).each { |loc| map.add_wall loc }
+    map.freeze_dimensions
 
-    # # Answer is 248 (by hand - see 'map')
-    # map.visualize_with_droid droid.position
+    # ----------------------------------------
+    # Colorize a few steps
+    # ----------------------------------------
+    minutes = 0
+    seekers = map.oxygen_location
+    map.color seekers, minutes
+
+    while seekers.any? do
+      minutes += 1
+      seekers = map.paint_adjacent_to(seekers, minutes)
+    end
+
+    assert_equal 383, minutes
+    puts "Diffuses in #{minutes - 1}"
+    map.visualize_colorized
+
   end
-
-  #=========================================================
-  # def xtest_diffusion
-  #   map = MapOfShip.new
-
-  #   # ----------------------------------------
-  #   # Read map back from file
-  #   # ----------------------------------------
-  #   eval(IO.read('oxygen')).each { |loc| map.add_oxygen loc }
-  #   eval(IO.read('walls')).each { |loc| map.add_wall loc }
-  #   map.freeze_dimensions
-
-  #   # ----------------------------------------
-  #   # Colorize a few steps
-  #   # ----------------------------------------
-  #   minutes = 0
-  #   seekers = map.oxygen_location
-  #   map.color seekers, minutes
-
-  #   while seekers.any? do
-  #     minutes += 1
-  #     seekers = map.paint_adjacent_to(seekers, minutes)
-  #     p seekers, minutes
-  #   end
-
-  #   puts "Diffuses in #{minutes}"
-  #   map.visualize_colorized
-  #   # seekers = map.oxygen_location
-  #   # p seekers
-  #   # 249 too low
-  # end
 end
