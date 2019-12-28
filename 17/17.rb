@@ -9,7 +9,6 @@ require_relative '../intcode/intcode'
 # Test driver17a
 #===========================================================
 class Examples17a < Test::Unit::TestCase
-
   # ========================================================
   def xtest_example
     example = "..#..........
@@ -29,7 +28,7 @@ class Examples17a < Test::Unit::TestCase
   end
 
   # ========================================================
-  def xtest_part1
+  def test_part1
     program = IO.read('input1.txt').split(',').map(&:to_i)
 
     output = []
@@ -37,22 +36,21 @@ class Examples17a < Test::Unit::TestCase
 
     map = Map.new
     map.add_image output
-    map.draw
+    # map.draw
 
     intersections = map.intersections
     assert_equal [[14, 8], [16, 12], [24, 16], [26, 26], [16, 28], [22, 28], [12, 34], [14, 34], [2, 48], [10, 52], [12, 56]], intersections
-    assert_equal 4600, intersections.map { |loc| loc[0] * loc[1] }.reduce(&:+)  # <- correct
+    assert_equal 4600, intersections.map { |loc| loc[0] * loc[1] }.reduce(&:+) # <- correct
   end
 end
 
 #===========================================================
 class Map
-
   NORTH = '^'.ord
   SOUTH = 'v'.ord
   WEST = '<'.ord
-  EAST ='>'.ord
-  p [NORTH, SOUTH, EAST, WEST]
+  EAST = '>'.ord
+  # p [NORTH, SOUTH, EAST, WEST]
 
   def initialize
     @scaffold_points = []
@@ -84,7 +82,7 @@ class Map
       when 35 # '#'
         @scaffold_points << [x, y]
         x += 1
-      when 'X'.ord  # Fallen off
+      when 'X'.ord # Fallen off
         x += 1
       when NORTH, SOUTH, EAST, WEST # Droid
         @scaffold_points << [x, y]
@@ -122,7 +120,8 @@ class Map
     loop do
       direction, turn = _next_direction(direction, position)
       distance, position = _next_distance(direction, position)
-      break if distance == 0
+      break if distance.zero?
+
       segments << [turn, distance]
     end
     segments
@@ -145,7 +144,7 @@ class Map
       return NORTH, 'R' if @scaffold_points.include?([x, y - 1])
       return SOUTH, 'L' if @scaffold_points.include?([x, y + 1])
     else
-      fail "Missed _next_direction(#{direction}, #{position})"
+      raise "Missed _next_direction(#{direction}, #{position})"
     end
   end
 
@@ -169,7 +168,7 @@ class Map
     else
       return [0, position]
     end
-    return steps, position
+    [steps, position]
   end
 end
 
@@ -177,7 +176,6 @@ end
 # Test driver17b
 #===========================================================
 class Examples17b < Test::Unit::TestCase
-
   # For the examples, can traverse route by running in line until
   # there are no more in that direction then turning in the only
   # l/r direction that has scaffolding.
@@ -209,31 +207,12 @@ class Examples17b < Test::Unit::TestCase
     route_sequence = stringify_segments(segments_in_route)
     assert_equal 'R8R8R4R4R8L6L2R4R4R8R8R8L6L2', route_sequence
 
-# ..R4R4R8..R4R4..R8..
-    # R8R8R4R4R8L6L2R4R4R8R8R8L6L2 ->
-    # Require A starts with R8 and C ends with L2.
-    # Hope first and last segment are not the same. (They are not in the 2 examples.)
-    # for a size = 1 to max
-    #  for c size = 1 to max - a size (backwards)
-    #    test a, c
     possibles = find_possible_programs(route_sequence)
     pp possibles
-    # limit = route_sequence.length
-    # p limit
-    # (2...limit).step(2) do |a_size|
-    #   a = route_sequence[0...a_size]
-    #   (2...limit).step(2) do |c_size|
-    #     next if a_size + c_size > limit
-    #     c = route_sequence[limit - c_size..-1]
-    #     # p [a, c]
-    #     possible = test_for_programmable_route(a, c, route_sequence)
-    #     p possible if possible
-    #   end
-    # end
   end
 
   # ========================================================
-  def test_part2
+  def xtest_part2
     program = IO.read('input1.txt').split(',').map(&:to_i)
     program[0] = 2 # 'Wake' the robot
 
@@ -248,8 +227,27 @@ class Examples17b < Test::Unit::TestCase
     # pp segments_in_route
     route_sequence = stringify_segments(segments_in_route)
     assert_equal 'L12L10R8L12R8R10R12L12L10R8L12R8R10R12L10R12R8L10R12R8R8R10R12L12L10R8L12R8R10R12L10R12R8', route_sequence
+    # L12L10R8L12R8R10R12L12L10R8L12R8R10R12L10R12R8L10R12R8R8R10R12L12L10R8L12R8R10R12L10R12R8
+    # 7   AACCBAC
+    # 19: A:L12L10R8L12R8R10R12
+    # 8:  B:R8R10R12
+    # 8:  C:L10R12R8
+    # ABABCCBABC
+    # 10  ABABCCBABC
+    # 11: A:L12L10R8L12
+    # 8:  B:R8R10R12
+    # 8:  C:L10R12R8
+    # ABABCCR8R10R12ABC
+    # 10  ABABCCBABC
+    # 11: A:L12L10R8
+    # 8:  B:L12R8R10R12
+    # 8:  C:L10R12R8
+    # ABABCCBABC
+    # C: L10R12R8
+    # B: R8R10R12
+    # A: L12L10R8L12
 
-    possibles = find_possible_programs(route_sequence).flatten.reject { |x| x.empty? }
+    possibles = find_possible_programs(route_sequence).flatten.reject(&:empty?)
     p __LINE__
     pp possibles
     p __LINE__
@@ -262,19 +260,24 @@ def stringify_segments(seg_info)
 end
 
 #===========================================================
-def test_for_programmable_route(a, c, route_sequence)
+def find_programmable_routes(a, c, route_sequence)
+  # Take off A and C from ends
   remainder = route_sequence.gsub(/^#{a}/, '').gsub(/#{c}$/, '')
-# p [a,c,remainder]
+  # p [a,c,remainder]
 
+  sequences_to_try2 = find_possible_sequences(a, c, remainder)
+
+  # See where A might fit by stepping on 2 chars at a time
   possible_a_starts = []
   (0..remainder.length - a.length).step(2).each { |start| possible_a_starts << start if remainder[start...start + a.length] == a }
+  # p [:a, possible_a_starts]
   return nil unless possible_a_starts.any?
-# p [:a, possible_a_starts]
 
+  # See where C might fit by stepping on 2 chars at a time
   possible_c_starts = []
   (0..remainder.length - c.length).step(2).each { |start| possible_c_starts << start if remainder[start...start + c.length] == c }
+  # p [:c, possible_c_starts]
   return nil unless possible_c_starts.any?
-# p [:c, possible_c_starts]
 
   sequences_to_try = []
   possible_a_starts.permutation.each do |a_starts|
@@ -291,11 +294,13 @@ def test_for_programmable_route(a, c, route_sequence)
         unmatched_sequences[c_range] = c_swap unless unmatched_sequences[c_range].include?('C')
       end
       # puts " #{unmatched_sequences}"
-      sequences_to_try << unmatched_sequences #.dup
+      sequences_to_try << unmatched_sequences
     end
   end
   sequences_to_try.uniq!
-# p [:sequences_to_try, sequences_to_try.uniq]
+  assert_equal sequences_to_try, sequences_to_try2
+
+  # p [:sequences_to_try, sequences_to_try.uniq]
   routes = []
   sequences_to_try.each do |seq|
     unmatched_sequences = seq.gsub(/A_+/, ' ').gsub(/C_+/, ' ').strip.gsub(/\s+/, ' ').split(' ')
@@ -317,36 +322,78 @@ def test_for_programmable_route(a, c, route_sequence)
   return nil if routes.empty?
   return routes
 
-#   unmatched_sequences = route_sequence.gsub(a, " ").gsub(c, " ").strip.gsub(/\s+/, ' ').split(' ')
-#   # unmatched_sequences = route_sequence.gsub('A_', ' ').gsub('C_', ' ').strip.gsub(/\s+/, ' ').split(' ')
-# p [:unmatched_sequences2, unmatched_sequences]
-#   # unmatched_sequences = route_sequence.gsub(c, " ").gsub(a, " ").strip.gsub(/\s+/, ' ').split(' ')
-#   return nil unless unmatched_sequences.any?  # Assume always a B
-#   # p unmatched_sequences
-#   b = unmatched_sequences.first
-#   return nil unless unmatched_sequences.all? { |s| s == b }
+  #   unmatched_sequences = route_sequence.gsub(a, " ").gsub(c, " ").strip.gsub(/\s+/, ' ').split(' ')
+  #   # unmatched_sequences = route_sequence.gsub('A_', ' ').gsub('C_', ' ').strip.gsub(/\s+/, ' ').split(' ')
+  # p [:unmatched_sequences2, unmatched_sequences]
+  #   # unmatched_sequences = route_sequence.gsub(c, " ").gsub(a, " ").strip.gsub(/\s+/, ' ').split(' ')
+  #   return nil unless unmatched_sequences.any?  # Assume always a B
+  #   # p unmatched_sequences
+  #   b = unmatched_sequences.first
+  #   return nil unless unmatched_sequences.all? { |s| s == b }
 
-#   matched_sequence = route_sequence.gsub(a, "A").gsub(b, "B").gsub(c, "C")
-#   len = a.length + b.length + c.length + matched_sequence.length
-#   # p len
-#   return nil unless len <= 20
-# p [:y, a, b, c, matched_sequence, len]
-#   [a, b, c, matched_sequence]
+  #   matched_sequence = route_sequence.gsub(a, "A").gsub(b, "B").gsub(c, "C")
+  #   len = a.length + b.length + c.length + matched_sequence.length
+  #   # p len
+  #   return nil unless len <= 20
+  # p [:y, a, b, c, matched_sequence, len]
+  #   [a, b, c, matched_sequence]
 end
 
 #===========================================================
 def find_possible_programs(route_sequence)
+  # R8R8R4R4R8L6L2R4R4R8R8R8L6L2 ->
+  # Require A starts with R8 and C ends with L2.
+  # Hope first and last segment are not the same. (They are not in the 2 examples.)
+  # for a size = 1 to max
+  #  for c size = 1 to max - a size (backwards)
+  #    test a, c
   possibles = []
   limit = route_sequence.length
   (2...limit).step(2) do |a_size|
     a = route_sequence[0...a_size]
     (2...limit).step(2) do |c_size|
       next if a_size + c_size > limit
+
       c = route_sequence[limit - c_size..-1]
       # p [a, c]
-      possible = test_for_programmable_route(a, c, route_sequence)
+      possible = find_programmable_routes(a, c, route_sequence)
       possibles += possible if possible
     end
   end
   possibles
+end
+
+#===========================================================
+def find_possible_sequences(a, c, remainder)
+  # See where A might fit by stepping on 2 chars at a time
+  possible_a_starts = []
+  (0..remainder.length - a.length).step(2).each { |start| possible_a_starts << start if remainder[start...start + a.length] == a }
+  # p [:a, possible_a_starts]
+  return nil unless possible_a_starts.any?
+
+  # See where C might fit by stepping on 2 chars at a time
+  possible_c_starts = []
+  (0..remainder.length - c.length).step(2).each { |start| possible_c_starts << start if remainder[start...start + c.length] == c }
+  # p [:c, possible_c_starts]
+  return nil unless possible_c_starts.any?
+
+  sequences_to_try = []
+  possible_a_starts.permutation.each do |a_starts|
+    possible_c_starts.permutation.each do |c_starts|
+      unmatched_sequences = remainder.dup
+      a_swap = 'A' + '_' * (a.length - 1)
+      c_swap = 'C' + '_' * (c.length - 1)
+      a_starts.each do |start|
+        a_range = start...start + a.length
+        unmatched_sequences[a_range] = a_swap unless unmatched_sequences[a_range].include?('A')
+      end
+      c_starts.each do |start|
+        c_range = start...start + c.length
+        unmatched_sequences[c_range] = c_swap unless unmatched_sequences[c_range].include?('C')
+      end
+      # puts " #{unmatched_sequences}"
+      sequences_to_try << unmatched_sequences
+    end
+  end
+  sequences_to_try.uniq
 end
