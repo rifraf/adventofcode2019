@@ -29,7 +29,7 @@ class Examples18a < Test::Unit::TestCase
   end
 
   # ========================================================
-  def xtest_example1
+  def test_example1
     maze_lines = [
       '#########',
       '#b.A.@.a#',
@@ -51,11 +51,11 @@ class Examples18a < Test::Unit::TestCase
     assert_equal [['A', 2]], routes['b']
     assert_equal [['b', 2], ['@', 2]], routes['A']
 
-    assert_equal 8, map.shortest_steps_for(map.keys, map.item_routes, '@', 0).min
+    assert_equal 8, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
   # ========================================================
-  def xtest_example2
+  def test_example2
     maze_lines = [
       '########################',
       '#f.D.E.e.C.b.A.@.a.B.c.#',
@@ -78,11 +78,11 @@ class Examples18a < Test::Unit::TestCase
     assert_equal [['B', 2], ['d', 24]], routes['c']
     assert_equal [['D', 2]], routes['f']
 
-    assert_equal 86, map.shortest_steps_for(map.keys, map.item_routes, '@', 0).min
+    assert_equal 86, map.shortest_steps_for(map.keys, map.item_routes, '@', 0) #.min
   end
 
   # ========================================================
-  def xtest_example3
+  def test_example3
     maze_lines = [
       '########################',
       '#...............b.C.D.f#',
@@ -95,7 +95,7 @@ class Examples18a < Test::Unit::TestCase
     map.add_image maze_lines
     map.draw
 
-    assert_equal 132, map.shortest_steps_for(map.keys, map.item_routes, '@', 0).min
+    assert_equal 132, map.shortest_steps_for(map.keys, map.item_routes, '@', 0) #.min
   end
 
   # ========================================================
@@ -116,7 +116,7 @@ class Examples18a < Test::Unit::TestCase
     map.add_image maze_lines
     map.draw
 
-    assert_equal 136, map.shortest_steps_for(map.keys, map.item_routes, '@', 0).min
+    assert_equal 136, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
   # ========================================================
@@ -134,7 +134,7 @@ class Examples18a < Test::Unit::TestCase
     map.add_image maze_lines
     map.draw
 
-    assert_equal 81, map.shortest_steps_for(map.keys, map.item_routes, '@', 0).min
+    assert_equal 81, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
   # ========================================================
@@ -145,7 +145,7 @@ class Examples18a < Test::Unit::TestCase
     map.add_image maze_lines
     map.draw
 
-    assert_equal 0, map.shortest_steps_for(map.keys, map.item_routes, '@', 0).min
+    assert_equal 0, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
 end
@@ -159,7 +159,7 @@ class Map
   def initialize
     @pixels = {}
     @walls = []
-    @keys = {}
+    @keys = []
     @doors = {}
     @entrance = [0, 0]
     @items = {}
@@ -178,7 +178,7 @@ class Map
         when '#'
           @walls << [x, y]
         when /[a-z]/
-          @keys[c] = [x, y]
+          @keys << c
           @items[c] = [x, y]
         when /[A-Z]/
           @doors[c] = [x, y]
@@ -226,16 +226,24 @@ class Map
   end
 
   # --------------------------------------------------------
-  def shortest_steps_for(keys, routes, origin, current_steps)
-    p [:shortest_steps_for, origin, current_steps]
-    pp routes
-    # return current_steps if keys.empty?
-    possible_results = []
+  def shortest_steps_for(keys, routes, origin, current_steps, best_result = nil)
+    # p [:shortest_steps_for, origin, keys, current_steps]
+    # pp routes
+    # return [] if keys.empty?
+    # possible_results = []
+    # best_result = nil
 
     connections = routes[origin] # e.g. [['A', 2], ['a', 3]]
 
     connections.each do |id, step| # e.g. ['A', 2]
-      puts " Looking at #{id}"
+      puts "\n Looking at #{id}"
+puts "#{step + current_steps}/#{best_result}"
+
+      if best_result && (step + current_steps >= best_result)
+        puts "---------------------------- Skip at #{step + current_steps}"
+        next
+      end
+
       # Door?
       if id =~ /[A-Z]/
         puts " Blocked by door #{id}"
@@ -248,20 +256,37 @@ class Map
       # Key?
       if id =~ /[a-z]/
         puts " Got key #{id}"
+        # next_route = _routes_removing(id, next_route)
         puts " Unlock door #{id.upcase}"
         next_route = _routes_removing(id.upcase, next_route)
 
         current_keys.delete(id)
         puts "---------------------------- DONE: #{step + current_steps}" if current_keys.empty?
-        possible_results << [step + current_steps] if current_keys.empty?
+        # possible_results << [step + current_steps] if current_keys.empty?
+        if current_keys.empty?
+          if best_result
+            best_result = [best_result, step + current_steps].min
+          else
+            best_result = step + current_steps
+          end
+        end
       end
 
       puts " Expand #{id}"
-      possible_results += shortest_steps_for(current_keys, next_route, id, current_steps + step)
+      # possible_results += shortest_steps_for(current_keys, next_route, id, current_steps + step)
+      ret = shortest_steps_for(current_keys, next_route, id, current_steps + step, best_result)
+      if ret
+        if best_result
+          best_result = [best_result, ret].min
+        else
+          best_result = ret
+        end
+      end
       # return ret unless ret.nil?
     end
 
-    possible_results.flatten
+    # possible_results.flatten
+    best_result
   end
 
   # --------------------------------------------------------
@@ -290,8 +315,14 @@ class Map
         end
       end
       steps.delete_if { |k, _v| k == origin }
+      steps.delete_if { |k, v| steps.find { |k2, v2| (k == k2) && (v2 < v) } }
     end
 
+    # puts "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+    # pp routes
+    # puts "Remove #{origin}"
+    # pp new_routes
+    # puts "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
     new_routes
   end
 
