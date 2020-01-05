@@ -10,7 +10,7 @@ require 'test/unit'
 class Examples18a < Test::Unit::TestCase
 
   # ========================================================
-  def test_route_removal
+  def xtest_route_removal
     map = Map.new
 
     routes = {
@@ -78,7 +78,7 @@ class Examples18a < Test::Unit::TestCase
     assert_equal [['B', 2], ['d', 24]], routes['c']
     assert_equal [['D', 2]], routes['f']
 
-    assert_equal 86, map.shortest_steps_for(map.keys, map.item_routes, '@', 0) #.min
+    assert_equal 86, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
   # ========================================================
@@ -95,7 +95,8 @@ class Examples18a < Test::Unit::TestCase
     map.add_image maze_lines
     map.draw
 
-    assert_equal 132, map.shortest_steps_for(map.keys, map.item_routes, '@', 0) #.min
+    # b, a, c, d, f, e, g
+    assert_equal 132, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
   # ========================================================
@@ -116,11 +117,14 @@ class Examples18a < Test::Unit::TestCase
     map.add_image maze_lines
     map.draw
 
+pp map.item_routes
+    # Gets 136 as best but never completes (in 24h)?
+    # a, f, b, j, g, n, h, d, l, o, e, p, c, i, k, m
     assert_equal 136, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
   # ========================================================
-  def xtest_example5
+  def test_example5
     maze_lines = [
       '########################',
       '#@..............ac.GI.b#',
@@ -134,6 +138,7 @@ class Examples18a < Test::Unit::TestCase
     map.add_image maze_lines
     map.draw
 
+    # a, c, f, i, d, g, b, e, h
     assert_equal 81, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
@@ -145,6 +150,7 @@ class Examples18a < Test::Unit::TestCase
     map.add_image maze_lines
     map.draw
 
+    # Gets down to 3274 eventually but runs out of memory
     assert_equal 0, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
@@ -226,27 +232,38 @@ class Map
   end
 
   # --------------------------------------------------------
-  def shortest_steps_for(keys, routes, origin, current_steps, best_result = nil)
+  def shortest_steps_for(keys, routes, origin, current_steps, best_result = nil, indent = '', tracker = '')
     # p [:shortest_steps_for, origin, keys, current_steps]
     # pp routes
     # return [] if keys.empty?
     # possible_results = []
     # best_result = nil
-
     connections = routes[origin] # e.g. [['A', 2], ['a', 3]]
 
-    connections.each do |id, step| # e.g. ['A', 2]
-      puts "\n Looking at #{id}"
-puts "#{step + current_steps}/#{best_result}"
+#    tracker += origin
+    # options = connections.map { |x,y| x }
+    # print "\n#{indent}[#{tracker}] Depth #{current_steps}. Options #{options}"
+#    print "\n#{indent}[#{tracker}]"
 
-      if best_result && (step + current_steps >= best_result)
-        puts "---------------------------- Skip at #{step + current_steps}"
-        next
+    # if options.select{ |item| options.count(item) > 1}.any?
+    #   puts "duplicate options"
+    #   pp connections
+    #   exit 1
+    # end
+#    indent += '  '
+
+    connections.each do |id, step| # e.g. ['A', 2] in steps order
+      # print " Looking at #{id}. Depth #{this_depth} (#{best_result})"
+
+      this_depth = step + current_steps
+      if best_result && (this_depth >= best_result)
+        # print "\n#{indent} ---------------------------- Abandon at #{id} because #{this_depth} >= #{best_result}"
+        break # Other connections are as far or further
       end
 
       # Door?
       if id =~ /[A-Z]/
-        puts " Blocked by door #{id}"
+        # print "\n#{indent} Blocked by door #{id}"
         next
       end
 
@@ -255,26 +272,24 @@ puts "#{step + current_steps}/#{best_result}"
 
       # Key?
       if id =~ /[a-z]/
-        puts " Got key #{id}"
-        # next_route = _routes_removing(id, next_route)
-        puts " Unlock door #{id.upcase}"
+        # print " Got key #{id}"
+        # print " Unlock door #{id.upcase}"
         next_route = _routes_removing(id.upcase, next_route)
 
         current_keys.delete(id)
-        puts "---------------------------- DONE: #{step + current_steps}" if current_keys.empty?
-        # possible_results << [step + current_steps] if current_keys.empty?
         if current_keys.empty?
-          if best_result
-            best_result = [best_result, step + current_steps].min
-          else
-            best_result = step + current_steps
-          end
+          best_result = if best_result
+                          [best_result, this_depth].min
+                        else
+                          this_depth
+                        end
+          print "\n---------------------------- All found: #{tracker}#{id} = #{this_depth}"
+          break
+          #next
         end
       end
 
-      puts " Expand #{id}"
-      # possible_results += shortest_steps_for(current_keys, next_route, id, current_steps + step)
-      ret = shortest_steps_for(current_keys, next_route, id, current_steps + step, best_result)
+      ret = shortest_steps_for(current_keys, next_route, id, this_depth, best_result, indent, tracker)
       if ret
         if best_result
           best_result = [best_result, ret].min
@@ -282,10 +297,8 @@ puts "#{step + current_steps}/#{best_result}"
           best_result = ret
         end
       end
-      # return ret unless ret.nil?
     end
 
-    # possible_results.flatten
     best_result
   end
 
@@ -316,6 +329,7 @@ puts "#{step + current_steps}/#{best_result}"
       end
       steps.delete_if { |k, _v| k == origin }
       steps.delete_if { |k, v| steps.find { |k2, v2| (k == k2) && (v2 < v) } }
+      steps.sort! { |a, b| a[1] <=> b[1] }.uniq!
     end
 
     # puts "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
