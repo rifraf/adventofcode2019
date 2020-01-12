@@ -32,6 +32,38 @@ class Examples23a < Test::Unit::TestCase
     assert_equal [26, 85142, 28154], send_requests.pop
     assert_equal [37, 96589, 28154], send_requests.pop
   end
+
+  #=========================================================
+  def test_part1
+    program = IO.read('input1.txt').split(',').map(&:to_i)
+
+    send_requests = Queue.new # Collects all requests for messages to be sent
+
+    input = 50.times.map { NonBlockingInputStream.new }
+
+    threads = []
+
+    # NIC threads
+    50.times do |addr|
+      input[addr] << addr
+      output = MessageRequestReceiver.new { |dest, x, y| send_requests << [dest, x, y] }
+      threads << Thread.new { run_intcode(input[addr], output, *program.dup) }
+    end
+
+    threads << Thread.new do
+      loop do
+        dest, x, y = send_requests.pop
+        # p [dest, x, y]
+        if dest == 255
+          assert_equal 26163, y # <- correct
+          threads.each(&:kill) # Suicidal
+        end
+        input[dest] << x << y
+      end
+    end
+
+    threads.each(&:join)
+  end
 end
 
 #===========================================================
@@ -44,6 +76,7 @@ class NonBlockingInputStream
 
   def shift
     ret = @q.empty? ? -1 : @q.shift
+    sleep 0.01 if ret == -1
     ret
   end
 
