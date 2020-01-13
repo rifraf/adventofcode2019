@@ -1,5 +1,5 @@
 #
-# Advent of Code 2023 day 23
+# Advent of Code 2019 day 23
 #
 require 'pp'
 require 'test/unit'
@@ -83,6 +83,10 @@ class NonBlockingInputStream
   def <<(val)
     @q << val
   end
+
+  def any?
+    !@q.empty?
+  end
 end
 
 #===========================================================
@@ -110,5 +114,52 @@ end
 class Examples23b < Test::Unit::TestCase
   #=========================================================
   def test_part2
+    program = IO.read('input1.txt').split(',').map(&:to_i)
+
+    send_requests = Queue.new # Collects all requests for messages to be sent
+
+    input = 50.times.map { NonBlockingInputStream.new }
+
+    threads = []
+
+    # NIC threads
+    50.times do |addr|
+      input[addr] << addr
+      output = MessageRequestReceiver.new { |dest, x, y| send_requests << [dest, x, y] }
+      threads << Thread.new { run_intcode(input[addr], output, *program.dup) }
+    end
+
+    nat_x = nat_y = nil
+    last_forwarded_nat_y = ''
+    Thread.abort_on_exception = true
+    threads << Thread.new do
+      loop do
+        if send_requests.empty?
+          unless nat_y.nil? || input.find(&:any?)
+            p [:tx_nat, nat_x, nat_y]
+            if last_forwarded_nat_y == nat_y
+              p [:repeat, nat_y]
+              assert_equal 18733, nat_y
+              threads.each(&:kill) # Suicidal
+            end
+            input[0] << nat_x << nat_y
+            last_forwarded_nat_y = nat_y
+          end
+          sleep 0.1
+          # Drop thru because there will be a response
+        else
+          # Message to be forwarded
+          dest, x, y = send_requests.pop
+          if dest == 255
+            nat_x = x
+            nat_y = y
+          else
+            input[dest] << x << y
+          end
+        end
+      end
+    end
+
+    threads.each(&:join)
   end
 end
