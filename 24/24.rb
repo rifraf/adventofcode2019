@@ -55,6 +55,32 @@ class Examples24a < Test::Unit::TestCase
     # and so on. Add up the biodiversity points for tiles with bugs; in this example,
     # the 16th tile (32768 points) and 22nd tile (2097152 points) have bugs,
     # a total biodiversity rating of 2129920.
+    example = [
+      '.....',
+      '.....',
+      '.....',
+      '#....',
+      '.#...'
+    ]
+    surface = Surface.new(example)
+    assert_equal 2129920, surface.biodiversity
+  end
+
+  #=========================================================
+  def test_part1
+    initial = IO.readlines('input.txt')
+    surface = Surface.new(initial)
+    bios = [surface.biodiversity]
+
+    loop do
+      b = surface.evolve!.biodiversity
+      if bios.include?(b)
+        puts "Duplicate biodiversity #{b}"
+        assert_equal 32506911, b # <- Correct
+        break
+      end
+      bios << b
+    end
   end
 end
 
@@ -87,6 +113,19 @@ class Surface
   end
 
   #=========================================================
+  def biodiversity
+    val = 0
+    incr = 1
+    @grid.each do |l|
+      l.each do |v|
+        val += incr if v
+        incr <<= 1
+      end
+    end
+    val
+  end
+
+  #=========================================================
   def to_a
     ret = []
     5.times do |y|
@@ -116,5 +155,4 @@ class Surface
     adjacent_count += 1 if (x < 4) && grid[y][x + 1]
     adjacent_count
   end
-
 end
