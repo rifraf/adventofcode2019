@@ -183,9 +183,16 @@ class Examples24b < Test::Unit::TestCase
     surfaces.each(&:prepare_next_generation)
     surfaces.each(&:evolve!)
 
-    assert_equal minute1_down, surfaces[0].to_a
+# Results change with up/down links???
+# ["#####", "#....", "#....", "#....", "#####"]
+# ["###..", "####.", "##...", "#####", "#####"]
+# [".....", "..#..", "...#.", "..#..", "....."]
+p surfaces[2].to_a
+p surfaces[1].to_a
+p surfaces[0].to_a
+    assert_equal minute1_down, surfaces[2].to_a
     assert_equal minute1,      surfaces[1].to_a
-    assert_equal minute1_up,   surfaces[2].to_a
+    assert_equal minute1_up,   surfaces[0].to_a
   end
 
   #=========================================================
@@ -261,7 +268,7 @@ end
 #===========================================================
 class RecursiveSurface < Surface
   #=========================================================
-  def connect(down, up)
+  def connect(up, down)
     @down = down
     @up = up
   end
@@ -280,9 +287,9 @@ class RecursiveSurface < Surface
     when [0,0]
       @up.cell(2, 1) + cell(x + 1, y) + cell(x, y + 1) + @up.cell(1, 2)
     when [1,0], [2,0], [3,0]
-      @up.cell(2,1) + cell(x + 1, y) + cell(x, y + 1) + cell(x - 1, y)
+      @up.cell(2, 1) + cell(x + 1, y) + cell(x, y + 1) + cell(x - 1, y)
     when [4,0]
-      @up.cell(2,1) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
+      @up.cell(2, 1) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
 
     # Row 1
     when [0,1]
@@ -325,7 +332,7 @@ class RecursiveSurface < Surface
       cell(x, y - 1) + @up.cell(3, 2) + @up.cell(2, 3) + cell(x - 1, y)
 
     else
-      0
+      fail "Bad x,y: #{x}, #{y}"
     end
   end
 end
