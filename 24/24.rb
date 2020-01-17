@@ -280,7 +280,6 @@ class RecursiveSurface < Surface
 
   #=========================================================
   def _adjacent_bugs(x, y)
-
     # Scan in basic order N E S W
     case [x, y]
     # Row 0
