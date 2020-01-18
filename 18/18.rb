@@ -100,7 +100,7 @@ class Examples18a < Test::Unit::TestCase
   end
 
   # ========================================================
-  def test_example4
+  def ztest_example4
     maze_lines = [
       '#################',
       '#i.G..c...e..H.p#',
@@ -117,10 +117,25 @@ class Examples18a < Test::Unit::TestCase
     map.add_image maze_lines
     map.draw
 
-pp map.item_routes
+# pp map.item_routes
+# def shortest_steps_for(keys, routes, origin, current_steps, best_result = nil)
+    routes = map._routes_removing('@', map.item_routes)
+pp routes
+    best_result = nil
+    map.item_routes['@'].select { |k, s| k =~ /[a-z]/}.each do |k, s|
+      puts "Start with #{k}/#{s} best = #{best_result}"
+      next_route = map._routes_removing(k.upcase, routes)
+      result = map.shortest_steps_for(map.keys - [k], next_route, k, s, best_result)
+      puts "Best for #{k} is #{result}"
+      best_result = if best_result
+                      [best_result, result].min
+                    else
+                      result
+                    end
+    end
     # Gets 136 as best but never completes (in 24h)?
     # a, f, b, j, g, n, h, d, l, o, e, p, c, i, k, m
-    assert_equal 136, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
+    # assert_equal 136, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
   # ========================================================
@@ -143,15 +158,29 @@ pp map.item_routes
   end
 
   # ========================================================
-  def xtest_part1
+  def test_part1
     maze_lines = IO.readlines('input1.txt')
 
     map = Map.new
     map.add_image maze_lines
     map.draw
 
+    routes = map._routes_removing('@', map.item_routes)
+pp routes
+    best_result = nil
+    map.item_routes['@'].select { |k, s| k =~ /[a-z]/}.each do |k, s|
+      puts "Start with #{k}/#{s} best = #{best_result}"
+      next_route = map._routes_removing(k.upcase, routes)
+      result = map.shortest_steps_for(map.keys - [k], next_route, k, s, best_result)
+      puts "Best for #{k} is #{result}"
+      best_result = if best_result
+                      [best_result, result].min
+                    else
+                      result
+                    end
+    end
     # Gets down to 3274 eventually but runs out of memory
-    assert_equal 0, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
+    # assert_equal 0, map.shortest_steps_for(map.keys, map.item_routes, '@', 0)
   end
 
 end
@@ -232,15 +261,15 @@ class Map
   end
 
   # --------------------------------------------------------
-  def shortest_steps_for(keys, routes, origin, current_steps, best_result = nil, indent = '', tracker = '')
+  def shortest_steps_for(keys, routes, origin, current_steps, best_result = nil) #, indent = '', tracker = '')
     # p [:shortest_steps_for, origin, keys, current_steps]
     # pp routes
     # return [] if keys.empty?
     # possible_results = []
     # best_result = nil
-    connections = routes[origin] # e.g. [['A', 2], ['a', 3]]
 
 #    tracker += origin
+    # connections = routes[origin] # e.g. [['A', 2], ['a', 3]]
     # options = connections.map { |x,y| x }
     # print "\n#{indent}[#{tracker}] Depth #{current_steps}. Options #{options}"
 #    print "\n#{indent}[#{tracker}]"
@@ -252,23 +281,26 @@ class Map
     # end
 #    indent += '  '
 
-    connections.each do |id, step| # e.g. ['A', 2] in steps order
+    routes[origin].
+      select { |id, step| (id =~ /[a-z]/) && (best_result.nil? || ((step + current_steps < best_result))) }.
+      each do |id, step| # e.g. ['A', 2] in steps order
       # print " Looking at #{id}. Depth #{this_depth} (#{best_result})"
 
       this_depth = step + current_steps
-      if best_result && (this_depth >= best_result)
-        # print "\n#{indent} ---------------------------- Abandon at #{id} because #{this_depth} >= #{best_result}"
-        break # Other connections are as far or further
-      end
+      # if best_result && (this_depth >= best_result)
+      #   # print "\n#{indent} ---------------------------- Abandon at #{id} because #{this_depth} >= #{best_result}"
+      #   break # Other connections are as far or further
+      # end
 
       # Door?
-      if id =~ /[A-Z]/
-        # print "\n#{indent} Blocked by door #{id}"
-        next
-      end
+      # if id =~ /[A-Z]/
+      #   # print "\n#{indent} Blocked by door #{id}"
+      #   next
+      # end
 
       next_route = _routes_removing(origin, routes)
-      current_keys = keys.dup
+      # current_keys = keys.dup
+      current_keys = keys
 
       # Key?
       if id =~ /[a-z]/
@@ -276,6 +308,7 @@ class Map
         # print " Unlock door #{id.upcase}"
         next_route = _routes_removing(id.upcase, next_route)
 
+        current_keys = current_keys.dup
         current_keys.delete(id)
         if current_keys.empty?
           best_result = if best_result
@@ -283,20 +316,20 @@ class Map
                         else
                           this_depth
                         end
-          print "\n---------------------------- All found: #{tracker}#{id} = #{this_depth}"
-          break
-          #next
+          print "\n---------------------------- All found: #{id} = #{this_depth}"
+          break # Next ones won't be closer
         end
       end
 
-      ret = shortest_steps_for(current_keys, next_route, id, this_depth, best_result, indent, tracker)
-      if ret
-        if best_result
-          best_result = [best_result, ret].min
-        else
-          best_result = ret
-        end
-      end
+      result = shortest_steps_for(current_keys, next_route, id, this_depth, best_result) #, indent, tracker)
+      next unless result
+
+      best_result = if best_result
+                      [best_result, result].min
+                    else
+                      result
+                    end
+
     end
 
     best_result

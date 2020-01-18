@@ -161,13 +161,13 @@ class Examples24b < Test::Unit::TestCase
     initial      = ['....#', '#..#.', '#..##', '..#..', '#....']
     minute1      = ['#..#.', '####.', '##..#', '##.##', '.##..']
     minute1_up   = ['.....', '..#..', '...#.', '..#..', '.....']
-    minute1_down = ['....#', '..#.#', '....#', '..#.#', '#####']
+    minute1_down = ["....#", "....#", "....#", "....#", "#####"]
     empty        = ['.....', '.....', '.....', '.....', '.....']
 
     evolution_count = 1
     surfaces_needed = 2 * evolution_count + 1
     surfaces = []
-    surfaces_needed.times { surfaces << RecursiveSurface.new }
+    surfaces_needed.times { |i| surfaces << RecursiveSurface.new(i) }
     surfaces[evolution_count].load_bugs(initial)
 
     assert_equal empty,   surfaces[0].to_a
@@ -180,19 +180,18 @@ class Examples24b < Test::Unit::TestCase
     end
     surfaces[surfaces_needed - 1].connect(surfaces[surfaces_needed - 2], nil)
 
+    # puts
+    # puts "Initial"
+    # surfaces.each(&:show)
     surfaces.each(&:prepare_next_generation)
     surfaces.each(&:evolve!)
 
-# Results change with up/down links???
-# ["#####", "#....", "#....", "#....", "#####"]
-# ["###..", "####.", "##...", "#####", "#####"]
-# [".....", "..#..", "...#.", "..#..", "....."]
-p surfaces[2].to_a
-p surfaces[1].to_a
-p surfaces[0].to_a
-    assert_equal minute1_down, surfaces[2].to_a
+    # puts "1 minute"
+    # surfaces.each(&:show)
+
+    assert_equal minute1_down, surfaces[0].to_a
     assert_equal minute1,      surfaces[1].to_a
-    assert_equal minute1_up,   surfaces[0].to_a
+    assert_equal minute1_up,   surfaces[2].to_a
   end
 
   #=========================================================
@@ -202,7 +201,7 @@ p surfaces[0].to_a
     evolution_count = 10
     surfaces_needed = 2 * evolution_count + 1
     surfaces = []
-    surfaces_needed.times { surfaces << RecursiveSurface.new }
+    surfaces_needed.times { |i| surfaces << RecursiveSurface.new(i) }
     surfaces[evolution_count].load_bugs(initial)
 
     surfaces[0].connect(nil, surfaces[1])
@@ -211,7 +210,10 @@ p surfaces[0].to_a
     end
     surfaces[surfaces_needed - 1].connect(surfaces[surfaces_needed - 2], nil)
 
-    10.times do
+    # puts "0 minutes"
+    # surfaces.each(&:show)
+
+    3.times do
       surfaces.each(&:prepare_next_generation)
       surfaces.each(&:evolve!)
     end
@@ -220,6 +222,9 @@ p surfaces[0].to_a
     surfaces.each_with_index do |s, i|
       p [i - evolution_count, s.to_a]
     end
+
+    puts "10 minutes"
+    surfaces.each(&:show)
 
     # ['.....', '.....', '.....', '.....', '.....']
     # ['.....', '.....', '.....', '.....', '.....']
@@ -267,10 +272,31 @@ end
 
 #===========================================================
 class RecursiveSurface < Surface
+
+  attr_reader :index
+
   #=========================================================
-  def connect(up, down)
+  def initialize(index)
+    @index = index
+    super(nil)
+  end
+
+  #=========================================================
+  def show
+    ret = []
+    puts "#{@index}:"
+    5.times do |y|
+      print ' '
+      @grid[y].each { |i| print(i.zero? ? '.' : '#') }
+      puts
+    end
+  end
+
+  #=========================================================
+  def connect(down, up)
     @down = down
     @up = up
+    # puts "#{@down ? @down.index : '-' } <- #{@index} -> #{@up ? @up.index : '-' }"
   end
 
   #=========================================================
@@ -298,7 +324,7 @@ class RecursiveSurface < Surface
     when [4,1]
       cell(x, y - 1) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
     when [2,1]
-      cell(x, y - 1) + @up.cell(3, 2) + (@down.cell(0,0) + @down.cell(1,0) + @down.cell(2,0) + @down.cell(3,0) + @down.cell(4,0)) + cell(x - 1, y)
+      cell(x, y - 1) + cell(x + 1, y) + (@down.cell(0,0) + @down.cell(1,0) + @down.cell(2,0) + @down.cell(3,0) + @down.cell(4,0)) + cell(x - 1, y)
 
     # Row 2
     when [0,2]
@@ -308,7 +334,7 @@ class RecursiveSurface < Surface
     when [2,2]
       0 # Magic centre
     when [3,2]
-      cell(x, y - 1) + cell(x + 1, y) + (@down.cell(4,0) + @down.cell(4,1) + @down.cell(4,2) + @down.cell(4,3) + @down.cell(4,4)) + cell(x - 1, y)
+      cell(x, y - 1) + cell(x + 1, y) + cell(x, y + 1) + (@down.cell(4,0) + @down.cell(4,1) + @down.cell(4,2) + @down.cell(4,3) + @down.cell(4,4))
     when [4,2]
       cell(x, y - 1) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
 
@@ -320,7 +346,7 @@ class RecursiveSurface < Surface
     when [4,3]
       cell(x, y - 1) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
     when [2,3]
-      (@down.cell(0,4) + @down.cell(1,4) + @down.cell(2,4) + @down.cell(3,4) + @down.cell(4,4)) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
+      (@down.cell(0,4) + @down.cell(1,4) + @down.cell(2,4) + @down.cell(3,4) + @down.cell(4,4)) + cell(x + 1, y) + cell(x, y + 1) + cell(x - 1, y)
 
     # Row 4
     when [0,4]
