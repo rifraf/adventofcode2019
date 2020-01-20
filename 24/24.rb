@@ -101,10 +101,15 @@ class Surface
   end
 
   #=========================================================
-  def evolve!
-    prepare_next_generation
+  def apply_next_generation!
     @grid = @nextgen
     self
+  end
+
+  #=========================================================
+  def evolve!
+    prepare_next_generation
+    apply_next_generation!
   end
 
   #=========================================================
@@ -155,6 +160,9 @@ end
 #===========================================================
 # Test driver24b
 #===========================================================
+# STD_DIRECTION = true
+STD_DIRECTION = false
+
 class Examples24b < Test::Unit::TestCase
   #=========================================================
   def test_1_recursive_evolutions
@@ -184,14 +192,20 @@ class Examples24b < Test::Unit::TestCase
     # puts "Initial"
     # surfaces.each(&:show)
     surfaces.each(&:prepare_next_generation)
-    surfaces.each(&:evolve!)
+    surfaces.each(&:apply_next_generation!)
 
     # puts "1 minute"
     # surfaces.each(&:show)
 
-    assert_equal minute1_down, surfaces[0].to_a
-    assert_equal minute1,      surfaces[1].to_a
-    assert_equal minute1_up,   surfaces[2].to_a
+    if STD_DIRECTION
+      assert_equal minute1_down, surfaces[0].to_a
+      assert_equal minute1,      surfaces[1].to_a
+      assert_equal minute1_up,   surfaces[2].to_a
+    else
+      assert_equal minute1_down, surfaces[2].to_a
+      assert_equal minute1,      surfaces[1].to_a
+      assert_equal minute1_up,   surfaces[0].to_a
+    end
   end
 
   #=========================================================
@@ -213,9 +227,9 @@ class Examples24b < Test::Unit::TestCase
     # puts "0 minutes"
     # surfaces.each(&:show)
 
-    3.times do
+    10.times do
       surfaces.each(&:prepare_next_generation)
-      surfaces.each(&:evolve!)
+      surfaces.each(&:apply_next_generation!)
     end
 
     puts
@@ -259,13 +273,27 @@ class Examples24b < Test::Unit::TestCase
     depth3  = ['..###', '.....', '#....', '#....', '#...#']
     depth4  = ['.###.', '#..#.', '#....', '##.#.', '.....']
     depth5  = ['####.', '#..#.', '#..#.', '####.', '.....']
+
+    assert_equal depthm5, surfaces[5].to_a
+    assert_equal depthm4, surfaces[6].to_a
+    assert_equal depthm3, surfaces[7].to_a
+    assert_equal depthm2, surfaces[8].to_a
+    assert_equal depthm1, surfaces[9].to_a
+    assert_equal depth0, surfaces[10].to_a
+    assert_equal depth1, surfaces[11].to_a
+    assert_equal depth2, surfaces[12].to_a
+    assert_equal depth3, surfaces[13].to_a
+    assert_equal depth4, surfaces[14].to_a
+    assert_equal depth5, surfaces[15].to_a
+
+    assert_equal 99, surfaces.map(&:bug_count).reduce(:+)
   end
 end
 
 #===========================================================
 class NilClass # Monkeypatch
   #=========================================================
-  def cell(x,y)
+  def cell(x, y)
     0
   end
 end
@@ -296,7 +324,14 @@ class RecursiveSurface < Surface
   def connect(down, up)
     @down = down
     @up = up
-    # puts "#{@down ? @down.index : '-' } <- #{@index} -> #{@up ? @up.index : '-' }"
+  end
+
+  #=========================================================
+  def bug_count
+    total = 0
+    5.times do |y|
+      total += @grid[y].reduce(:+)
+    end
   end
 
   #=========================================================
@@ -305,59 +340,157 @@ class RecursiveSurface < Surface
   end
 
   #=========================================================
-  def _adjacent_bugs(x, y)
-    # Scan in basic order N E S W
-    case [x, y]
-    # Row 0
-    when [0,0]
-      @up.cell(2, 1) + cell(x + 1, y) + cell(x, y + 1) + @up.cell(1, 2)
-    when [1,0], [2,0], [3,0]
-      @up.cell(2, 1) + cell(x + 1, y) + cell(x, y + 1) + cell(x - 1, y)
-    when [4,0]
-      @up.cell(2, 1) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
-
-    # Row 1
-    when [0,1]
-      cell(x, y - 1) + cell(x + 1, y) + cell(x, y + 1) + @up.cell(1, 2)
-    when [1,1], [3,1]
-      cell(x, y - 1) + cell(x + 1, y) + cell(x, y + 1) + cell(x - 1, y)
-    when [4,1]
-      cell(x, y - 1) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
-    when [2,1]
-      cell(x, y - 1) + cell(x + 1, y) + (@down.cell(0,0) + @down.cell(1,0) + @down.cell(2,0) + @down.cell(3,0) + @down.cell(4,0)) + cell(x - 1, y)
-
-    # Row 2
-    when [0,2]
-      cell(x, y - 1) + cell(x + 1, y) + cell(x, y + 1) + @up.cell(1, 2)
-    when [1,2]
-      cell(x, y - 1) + (@down.cell(0,0) + @down.cell(0,1) + @down.cell(0,2) + @down.cell(0,3) + @down.cell(0,4)) + cell(x, y + 1) + cell(x - 1, y)
-    when [2,2]
-      0 # Magic centre
-    when [3,2]
-      cell(x, y - 1) + cell(x + 1, y) + cell(x, y + 1) + (@down.cell(4,0) + @down.cell(4,1) + @down.cell(4,2) + @down.cell(4,3) + @down.cell(4,4))
-    when [4,2]
-      cell(x, y - 1) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
-
-    # Row 3
-    when [0,3]
-      cell(x, y - 1) + cell(x + 1, y) + cell(x, y + 1) + @up.cell(1, 2)
-    when [1,3], [3,3]
-      cell(x, y - 1) + cell(x + 1, y) + cell(x, y + 1) + cell(x - 1, y)
-    when [4,3]
-      cell(x, y - 1) + @up.cell(3, 2) + cell(x, y + 1) + cell(x - 1, y)
-    when [2,3]
-      (@down.cell(0,4) + @down.cell(1,4) + @down.cell(2,4) + @down.cell(3,4) + @down.cell(4,4)) + cell(x + 1, y) + cell(x, y + 1) + cell(x - 1, y)
-
-    # Row 4
-    when [0,4]
-      cell(x, y - 1) + cell(x + 1, y) + @up.cell(2, 3) + @up.cell(1, 2)
-    when [1,4], [2,4], [3,4]
-      cell(x, y - 1) + cell(x + 1, y) + @up.cell(2, 3) + cell(x - 1, y)
-    when [4,4]
-      cell(x, y - 1) + @up.cell(3, 2) + @up.cell(2, 3) + cell(x - 1, y)
-
+  def north(x, y)
+    if STD_DIRECTION
+      return north_down if [x,y] == [2,3]
+      (0 == y) ?
+        @up.cell(2, 1) :
+        cell(x, y - 1)
     else
-      fail "Bad x,y: #{x}, #{y}"
+      return north_down if [x,y] == [2,3]
+      (0 == y) ?
+        @down.cell(2, 1) :
+        cell(x, y - 1)
     end
+  end
+
+  #=========================================================
+  def east(x, y)
+    if STD_DIRECTION
+      return east_down if [x,y] == [1,2]
+      (4 == x) ?
+        @up.cell(3, 2) :
+        cell(x + 1, y)
+    else
+      return east_down if [x,y] == [1,2]
+      (4 == x) ?
+        @down.cell(3, 2) :
+        cell(x + 1, y)
+    end
+  end
+
+  #=========================================================
+  def south(x, y)
+    if STD_DIRECTION
+      return south_down if [x,y] == [2,1]
+      (4 == y) ?
+        @up.cell(2, 3) :
+      cell(x, y + 1)
+    else
+      return south_down if [x,y] == [2,1]
+      (4 == y) ?
+        @down.cell(2, 3) :
+      cell(x, y + 1)
+    end
+  end
+
+  #=========================================================
+  def west(x, y)
+    if STD_DIRECTION
+      return west_down if [x,y] == [3,2]
+      (0 == x) ?
+        @up.cell(1, 2) :
+        cell(x - 1, y)
+    else
+      return west_down if [x,y] == [3,2]
+      (0 == x) ?
+        @down.cell(1, 2) :
+        cell(x - 1, y)
+    end
+  end
+
+  #=========================================================
+  def north_down
+    if STD_DIRECTION
+      @down.cell(0,4) + @down.cell(1,4) + @down.cell(2,4) + @down.cell(3,4) + @down.cell(4,4)
+    else
+      @up.cell(0,4) + @up.cell(1,4) + @up.cell(2,4) + @up.cell(3,4) + @up.cell(4,4)
+    end
+  end
+
+  #=========================================================
+  def east_down
+    if STD_DIRECTION
+      @down.cell(0,0) + @down.cell(0,1) + @down.cell(0,2) + @down.cell(0,3) + @down.cell(0,4)
+    else
+      @up.cell(0,0) + @up.cell(0,1) + @up.cell(0,2) + @up.cell(0,3) + @up.cell(0,4)
+    end
+  end
+
+  #=========================================================
+  def south_down
+    if STD_DIRECTION
+      @down.cell(0,0) + @down.cell(1,0) + @down.cell(2,0) + @down.cell(3,0) + @down.cell(4,0)
+    else
+      @up.cell(0,0) + @up.cell(1,0) + @up.cell(2,0) + @up.cell(3,0) + @up.cell(4,0)
+    end
+  end
+
+  #=========================================================
+  def west_down
+    if STD_DIRECTION
+      @down.cell(4,0) + @down.cell(4,1) + @down.cell(4,2) + @down.cell(4,3) + @down.cell(4,4)
+    else
+      @up.cell(4,0) + @up.cell(4,1) + @up.cell(4,2) + @up.cell(4,3) + @up.cell(4,4)
+    end
+  end
+
+  #=========================================================
+  def _adjacent_bugs(x, y)
+    return 0 if [x, y] == [2,2]
+    north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # Scan in basic order N E S W
+    # case [x, y]
+    # # Row 0
+    # when [0,0]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [1,0], [2,0], [3,0]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [4,0]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+
+    # # Row 1
+    # when [0,1]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [1,1], [3,1]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [2,1]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [4,1]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+
+    # # Row 2
+    # when [0,2]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [1,2]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [2,2]
+    #   0 # Magic centre
+    # when [3,2]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [4,2]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+
+    # # Row 3
+    # when [0,3]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [1,3], [3,3]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [2,3]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [4,3]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+
+    # # Row 4
+    # when [0,4]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [1,4], [2,4], [3,4]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+    # when [4,4]
+    #   north(x, y) + east(x, y) + south(x, y) + west(x, y)
+
+    # else
+    #   fail "Bad x, y: #{x}, #{y}"
+    # end
   end
 end
