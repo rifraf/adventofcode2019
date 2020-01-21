@@ -94,7 +94,6 @@ class Examples22a < Test::Unit::TestCase
   #=========================================================
   def test_part1
     deck = Deck.new(10_007)
-
     manipulate_deck!(deck)
     assert_equal 2322, deck.cards.index(2019) # <- correct
   end
@@ -244,4 +243,70 @@ def manipulate_deck!(deck)
   deck.increment(9)
   deck.cut(-4747)
   deck.increment(6)
+end
+
+#===========================================================
+# Test driver22b
+#===========================================================
+class Examples22b < Test::Unit::TestCase
+  #=========================================================
+
+  # There are 119_315_717_514_047 cards
+  # We need   101_741_582_076_661 repeats of manipulate_deck!
+  # !!!
+
+  #=========================================================
+  def test_explore
+    deck = Deck.new(10_007)
+
+    manipulate_deck!(deck)
+    assert_equal 2322, deck.cards.index(2019) # <- correct
+
+    # pp deck.cards
+    # 10_006.times { |i| p [deck.cards[i], deck.cards[i + 1] - deck.cards[i]] }
+
+    # puts
+    # 15.times do |i|
+    #   p [deck.cards.index(i), (deck.cards.index(i + 1) - deck.cards.index(i)) % 10_007]
+    # end
+
+    # These pass
+    # # Position of card 'n' is (3084 + n * 639) % 10_007
+    # assert_equal 3084, (3084 + 0 * 639) % 10_007
+    # assert_equal 2322, (3084 + 2019 * 639) % 10_007
+    # 10_007.times do |i|
+    #   assert_equal deck.cards.index(i), (3084 + i * 639) % 10_007
+    # end
+
+    # # Card at position 'm' is (7935 + (m * -830)) % 10_007
+    # assert_equal 7935, (7935 + 0 * -830) % 10_007
+    # assert_equal 7105, (7935 + 1 * -830) % 10_007
+    # assert_equal 9595, (7935 + 10_005 * -830) % 10_007
+    # 10_007.times do |i|
+    #   assert_equal deck.cards[i], (7935 + i * -830) % 10_007
+    # end
+
+    # # Card at position 'm' is 47 more than card at position 'm-12'
+    # 10_007.times do |i|
+    #   assert_equal 47, (deck.cards[(i + 12) % 10_007] - deck.cards[i]) % 10_007
+    # end
+  end
+
+  #=========================================================
+  def test_repeat
+    # Google hint that we repeat after (count - 1) iterations
+    reference_deck = Deck.new(10_007)
+    deck = Deck.new(10_007)
+
+    # This bit passes (in around 600s...)
+    # 10_006.times { manipulate_deck!(deck) }
+    # assert_equal reference_deck.cards, deck.cards
+
+    card_count = 119_315_717_514_047
+    repeats = 101_741_582_076_661
+    target_position = 2020
+
+    shuffles_left_until_initial_state = card_count - 1 - repeats
+    p [:shuffles_left_until_initial_state, shuffles_left_until_initial_state] # 17_574_135_437_385
+  end
 end
